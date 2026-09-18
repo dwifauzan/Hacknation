@@ -1,0 +1,6 @@
+/vendor
+/node_modules
+.env
+Whatsapp-service/sessions/
+Instagram-service/__pycache__/
+*.pyc

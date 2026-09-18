@@ -19,14 +19,42 @@ def _thread(**kw):
 def test_list_threads_returns_summaries_without_extra_calls():
     client = MagicMock()
     client.direct_threads.return_value = [_thread(), _thread(id="222", thread_title="bob")]
+    client.direct_pending_inbox.return_value = []
 
     out = list_threads(client, amount=5)
 
     assert [t["id"] for t in out] == ["111", "222"]
     client.direct_threads.assert_called_once_with(5)
+    client.direct_pending_inbox.assert_called_once_with(5)
     # must not mark seen / send anything while listing
     client.direct_send_seen.assert_not_called()
     client.direct_answer.assert_not_called()
+
+
+def test_list_threads_includes_pending_requests_from_non_followed_users():
+    client = MagicMock()
+    client.direct_threads.return_value = [_thread(id="111")]
+    client.direct_pending_inbox.return_value = [
+        _thread(id="333", thread_title="not_followed")
+    ]
+
+    out = list_threads(client, amount=5)
+
+    assert [thread["id"] for thread in out] == ["111", "333"]
+    assert out[1]["title"] == "not_followed"
+
+
+def test_list_threads_deduplicates_threads_returned_by_both_folders():
+    client = MagicMock()
+    client.direct_threads.return_value = [_thread(id="111", thread_title="regular")]
+    client.direct_pending_inbox.return_value = [
+        _thread(id="111", thread_title="pending")
+    ]
+
+    out = list_threads(client, amount=5)
+
+    assert [thread["id"] for thread in out] == ["111"]
+    assert len(out) == 1
 
 
 def test_read_thread_returns_messages():

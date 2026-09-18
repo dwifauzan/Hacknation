@@ -1,0 +1,12 @@
+# Instagram session / secrets — never commit (tokens = full account access)
+instagramApi/session.json
+**/session.json
+.env
+instagramApi/.env
+
+# Local Python venv — huge, machine-specific
+instagramApi/venv/
+
+# Python cache
+__pycache__/
+*.pyc

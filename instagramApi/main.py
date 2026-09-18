@@ -12,7 +12,14 @@ import getpass
 import os
 import sys
 
+from dotenv import load_dotenv
+
 from ig_client import SESSION_FILE, create_client, password_login_and_save, secure_session_perms, try_session_login
+
+_env_dir = os.path.dirname(__file__)
+_env_file = os.path.join(_env_dir, ".env")
+# Secrets must come from the ignored .env file or the process environment.
+load_dotenv(_env_file)
 
 
 def _prompt_creds():
@@ -36,6 +43,12 @@ def main() -> int:
     parser.add_argument("--send", default="", metavar="THREAD_ID",
                         help="Reply once to this thread id (requires --text)")
     parser.add_argument("--text", default="", help="Reply text for --send")
+    parser.add_argument("--auto-once", action="store_true",
+                        help="Process visible new DMs once with the AI and reply")
+    parser.add_argument("--db", default=os.path.join(os.path.dirname(__file__), "dm_store.sqlite3"),
+                        help="SQLite path for duplicate claims and reply logs")
+    parser.add_argument("--my-user-id", default=os.environ.get("IG_MY_USER_ID", ""),
+                        help="Optional override; otherwise read from the authenticated session")
     parser.add_argument("--amount", type=int, default=20,
                         help="Messages to fetch for --read (default 20)")
     args = parser.parse_args()
@@ -43,7 +56,6 @@ def main() -> int:
     if args.send and not args.text.strip():
         print("ERROR: --send requires --text \"message\".", file=sys.stderr)
         return 1
-
     client = create_client(proxy=args.proxy)
     secure_session_perms(SESSION_FILE)  # session.json holds sessionid/tokens
 
@@ -84,6 +96,15 @@ def main() -> int:
         print(f"OK: fresh login as @{me.username} (pk={me.pk})")
         print(f"Saved: {SESSION_FILE} -- reuse it next run to avoid 2FA.")
 
+    # The authenticated session is the source of truth for the account id.
+    # An explicit value remains available for unusual client/test setups.
+    my_user_id = args.my_user_id.strip() or str(
+        getattr(me, "pk", "") or getattr(client, "user_id", "") or ""
+    )
+    if args.auto_once and not my_user_id:
+        print("ERROR: authenticated session did not provide an account id.", file=sys.stderr)
+        return 1
+
     # 2) Optional DM actions (only after a valid session — no extra login).
     # Human pacing: login->inbox->read->send back-to-back looks like a bot.
     import time as _time
@@ -114,6 +135,25 @@ def main() -> int:
             sent = reply_to_thread(client, args.send, args.text)
             print(f"\nSENT to {args.send}: id={getattr(sent, 'id', '?')}")
             print("TIP: don't double-run; duplicates send twice. Wait for reply.", file=sys.stderr)
+        if args.auto_once:
+            from agent import process_inbox_once
+            from store import Store
+
+            with Store(args.db) as store:
+                results = process_inbox_once(
+                    client,
+                    store,
+                    my_user_id=my_user_id,
+                    max_threads=min(args.inbox or 20, MAX_INBOX),
+                    max_messages=args.amount,
+                )
+            sent = sum(result.status == "sent" for result in results)
+            print(f"\nAI AUTO-REPLY: scanned={len(results)} sent={sent}")
+            for result in results:
+                if result.status == "sent":
+                    print(f"- SENT {result.thread_id}: {result.reply[:120]}")
+                elif result.reason:
+                    print(f"- SKIP {result.thread_id}: {result.reason}")
     except ValueError as e:
         print(f"\nINVALID INPUT: {e}", file=sys.stderr)
         return 1

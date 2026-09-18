@@ -3,6 +3,7 @@
 Bot-safe rules:
 - Never login here; caller must have a valid session (try_session_login first).
 - Listing/reading is read-only: no seen-marking, no extra requests.
+- Inbox listing includes both regular conversations and pending message requests.
 - Reply uses direct_answer(thread_id, text) exactly once per call.
 """
 from typing import Any
@@ -46,10 +47,38 @@ def format_message(m: Any) -> dict:
 
 
 def list_threads(client, amount: int = 20) -> list:
-    """Return thread summaries, newest first. Read-only."""
+    """Return regular and pending thread summaries, newest first. Read-only.
+
+    Instagram keeps messages from people the account does not follow in a
+    separate pending/request inbox. Fetching only ``direct_threads`` silently
+    omits those conversations.
+    """
     n = max(1, min(int(amount or 20), MAX_INBOX))
-    threads = client.direct_threads(n)
-    return [format_thread_summary(t) for t in threads]
+    threads = list(client.direct_threads(n) or [])
+    pending_threads = list(client.direct_pending_inbox(n) or [])
+
+    # A thread can move between folders while the two requests are running.
+    # Keep one copy and order the combined result by Instagram's activity time.
+    by_id = {}
+    for thread in threads + pending_threads:
+        thread_id = str(getattr(thread, "id", "") or "")
+        if thread_id:
+            by_id[thread_id] = thread
+
+    def activity_key(thread):
+        value = getattr(thread, "last_activity_at", None)
+        if value is None:
+            return float("-inf")
+        timestamp = getattr(value, "timestamp", None)
+        if callable(timestamp):
+            return timestamp()
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return float("-inf")
+
+    combined = sorted(by_id.values(), key=activity_key, reverse=True)
+    return [format_thread_summary(t) for t in combined[:n]]
 
 
 def read_thread(client, thread_id: str, amount: int = 20) -> list:

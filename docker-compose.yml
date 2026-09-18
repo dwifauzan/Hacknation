@@ -1,0 +1,21 @@
+services:
+  # Microservice WhatsApp (Go)
+  whatsapp-service:
+    build:
+      context: ./Whatsapp-service
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./Whatsapp-service:/app
+    restart: unless-stopped
+
+  laravel-app:
+    image: php:8.4-cli
+    ports:
+      - "8001:8000"
+    volumes:
+      - .:/var/www/html
+    working_dir: /var/www/html
+    command: php artisan serve --host=0.0.0.0 --port=8000
+    depends_on:
+      - whatsapp-service

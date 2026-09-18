@@ -1,3 +1,28 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    body {
+        @apply min-h-screen bg-[#090d16] text-gray-100 antialiased;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+}
+
+@layer components {
+    .glass-panel {
+        background: rgba(17, 24, 39, 0.75);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .glass-modal {
+        background: rgba(15, 23, 42, 0.95);
+        backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .pulse-glow-green {
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+    }
+}

@@ -1,0 +1,203 @@
+/* ChannelStatus Component Styles */
+
+.channel-status-card {
+  padding: 20px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.channel-header {
+  margin-bottom: 16px;
+}
+
+.channel-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.channel-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.channel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.channel-row {
+  min-height: 52px;
+  padding: 0 14px;
+  border-radius: 8px;
+  background-color: var(--card-inner-bg);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.channel-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Explicit channel icon box dimensions as strictly requested */
+.channel-icon-box {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.channel-icon-box.instagram {
+  background-color: #17202e;
+  border: 1px solid #253346;
+  color: var(--text-primary);
+}
+
+.channel-icon-box.instagram svg {
+  width: 16px;
+  height: 16px;
+}
+
+.channel-icon-box.whatsapp {
+  background-color: rgba(6, 95, 70, 0.4);
+  border: 1px solid #065f46;
+  color: var(--status-success);
+}
+
+.channel-icon-box.whatsapp svg {
+  width: 16px;
+  height: 16px;
+}
+
+.channel-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.channel-jid {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.channel-status-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.channel-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.channel-status-dot.connected {
+  background-color: var(--status-success);
+}
+
+.channel-status-dot.disconnected {
+  background-color: var(--status-danger);
+}
+
+.channel-status-text {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.channel-status-text.connected {
+  color: var(--status-success);
+}
+
+.channel-status-text.disconnected {
+  color: var(--status-danger);
+}
+
+.channel-synced-time {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.channel-qr-btn {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 6px;
+  background-color: #059669;
+  border: 1px solid #10b981;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.channel-qr-btn:hover {
+  background-color: #10b981;
+}
+
+.channel-qr-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.channel-logout-btn {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
+  background-color: #111d2c;
+  border: 1px solid #26364a;
+  color: var(--status-danger);
+  font-size: 10px;
+  font-weight: 500;
+  transition: background-color 0.15s ease;
+}
+
+.channel-logout-btn:hover {
+  background-color: #172333;
+}
+
+.channel-manage-btn {
+  width: 100%;
+  height: 36px;
+  margin-top: 16px;
+  border-radius: 8px;
+  background-color: var(--card-inner-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.channel-manage-btn:hover {
+  background-color: #101f32;
+  border-color: #2b425c;
+  color: var(--text-primary);
+}
+
+.channel-manage-btn svg {
+  width: 14px;
+  height: 14px;
+}

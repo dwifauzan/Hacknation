@@ -1,0 +1,35 @@
+# Laravel — PHP 8.4 CLI + SQLite (pdo_sqlite)
+# NOTE: composer.lock mengunci symfony/* v8.1 yang butuh PHP >=8.4.1,
+# jadi base image harus 8.4+ (jangan turunkan ke 8.2).
+FROM php:8.4-cli
+
+# System deps: sqlite, git, unzip (composer), wget (healthcheck)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git unzip sqlite3 libsqlite3-dev wget \
+    && docker-php-ext-install pdo pdo_sqlite \
+    && rm -rf /var/lib/apt/lists/*
+
+# Composer binary dari image resmi
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+WORKDIR /var/www/html
+
+# Install PHP deps dulu (cache-friendly) — vendor TIDAK di-mount, jadi aman.
+# --no-scripts karena artisan belum ada saat tahap ini (hanya composer.json).
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
+
+# Salin sisa source Laravel, lalu jalankan script artisan yang tadi di-skip
+COPY . .
+RUN php artisan package:discover --ansi || true
+
+# Siapkan folder writable + SQLite file (dipersist via named volume)
+RUN mkdir -p database storage bootstrap/cache \
+    && touch database/database.sqlite \
+    && chown -R www-data:www-data storage bootstrap/cache database \
+    && chmod -R 775 storage bootstrap/cache database
+
+EXPOSE 8000
+
+# artisan serve cocok untuk dev/hackathon. Untuk prod ganti ke php-fpm + nginx.
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]

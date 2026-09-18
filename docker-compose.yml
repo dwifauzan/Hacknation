@@ -1,21 +1,104 @@
 services:
-  # Microservice WhatsApp (Go)
+  # ── 1. WhatsApp Go microservice (whatsmeow) ─────────────────────
+  # Single source of truth untuk session WA, chat storage (SQLite),
+  # REST (/status /qr /chats /messages /send-wa) + WebSocket (/ws).
   whatsapp-service:
     build:
       context: ./Whatsapp-service
     ports:
       - "8080:8080"
+    environment:
+      # Port yang didengar di dalam container (dibaca main.go)
+      - PORT=8080
+      - LOG_LEVEL=INFO
+      # URL internal Laravel untuk webhook masa depan (lihat main.go).
+      # Pakai nama service docker, BUKAN localhost.
+      - LARAVEL_WEBHOOK_URL=http://laravel-app:8000/webhook/whatsapp
+      - WHATSAPP_SERVICE_URL=http://whatsapp-service:8080
     volumes:
-      - ./Whatsapp-service:/app
+      # Persist session + SQLite WAL agar QR tidak hilang tiap restart.
+      # Hanya mount subfolder sessions, jangan seluruh /app (menimpa binary).
+      - wa-sessions:/app/sessions
+    networks:
+      - app-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/status || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
+  # ── 2. Laravel 11 (business API + proxy ke WA service) ──────────
+  # Melayani: /up (health), /api/* (bisnis), /whatsapp/* + /kirim-pesan (proxy).
+  # Browser memanggil Laravel via http://localhost:8001,
+  # Laravel memanggil WA via http://whatsapp-service:8080 (internal).
   laravel-app:
-    image: php:8.4-cli
+    build:
+      context: .
+      dockerfile: Dockerfile.laravel
     ports:
       - "8001:8000"
+    environment:
+      - APP_NAME=Laravel
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - APP_URL=http://localhost:8001
+      - APP_KEY=base64:+SFhKg1sL1SAUrBUqJoRz32WDtGpSDjz5oK4qAh6TzY=
+      - LOG_CHANNEL=stack
+      - LOG_LEVEL=debug
+      - DB_CONNECTION=sqlite
+      - SESSION_DRIVER=file
+      # WAJIB: nama service docker, bukan localhost
+      - WHATSAPP_SERVICE_URL=http://whatsapp-service:8080
     volumes:
-      - .:/var/www/html
-    working_dir: /var/www/html
-    command: php artisan serve --host=0.0.0.0 --port=8000
+      # Persist SQLite Laravel + storage (log, cache, session file)
+      - laravel-db:/var/www/html/database
+      - laravel-storage:/var/www/html/storage
+    networks:
+      - app-network
+    restart: unless-stopped
     depends_on:
-      - whatsapp-service
+      whatsapp-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php artisan about > /dev/null 2>&1 && wget --no-verbose --tries=1 --spider http://localhost:8000/up || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  # ── 3. Frontend React+Vite (nginx static + reverse proxy) ───────
+  # Browser membuka http://localhost:3000.
+  # - /api/*  → proxy ke laravel-app:8000 (hindari CORS, bebas ganti base URL)
+  # - /wa/*   → proxy ke whatsapp-service:8080 (opsi agar WS/REST satu origin)
+  # - Direct call tetap didukung via VITE_*_URL (localhost, karena dari browser).
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_WA_API_URL: http://localhost:8080
+        VITE_WS_URL: ws://localhost:8080/ws
+        VITE_LARAVEL_API_URL: http://localhost:8001/api
+    ports:
+      - "3000:80"
+    networks:
+      - app-network
+    restart: unless-stopped
+    depends_on:
+      laravel-app:
+        condition: service_healthy
+      whatsapp-service:
+        condition: service_healthy
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  wa-sessions:
+    driver: local
+  laravel-db:
+    driver: local
+  laravel-storage:
+    driver: local

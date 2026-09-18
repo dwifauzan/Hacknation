@@ -17,7 +17,6 @@ import (
 	"syscall"
 	"time"
 
-	_ "modernc.org/sqlite"
 	"github.com/coder/websocket"
 	"github.com/mdp/qrterminal/v3"
 	qrcode "github.com/skip2/go-qrcode"
@@ -29,6 +28,7 @@ import (
 	"go.mau.fi/whatsmeow/types/events"
 	waLog "go.mau.fi/whatsmeow/util/log"
 	"google.golang.org/protobuf/proto"
+	_ "modernc.org/sqlite"
 )
 
 // ⚠️ ANTI-BAN CRITICAL — JANGAN UBAH CONSTANTS
@@ -37,7 +37,7 @@ const (
 	MaxIncomingPerMin = 50              // Maksimal log/proses event pesan masuk per menit (Anti-Ban Guard)
 
 	// HistorySync Optimization Constants
-	HistorySyncMaxAgeDays   = 7
+	HistorySyncMaxAgeDays     = 7
 	HistorySyncMaxMsgsPerChat = 1
 )
 
@@ -185,22 +185,22 @@ func migrateExistingLIDs() {
 }
 
 var (
-	client           *whatsmeow.Client
-	writeDB          *sql.DB
-	readDB           *sql.DB
-	currentQR        string
-	qrMutex          sync.RWMutex
+	client    *whatsmeow.Client
+	writeDB   *sql.DB
+	readDB    *sql.DB
+	currentQR string
+	qrMutex   sync.RWMutex
 
 	// ⚠️ ANTI-BAN CRITICAL — JANGAN UBAH MUTEX & RATE LIMIT VARIABLES
-	sendMutex        sync.Mutex
-	lastSendTime     time.Time
+	sendMutex    sync.Mutex
+	lastSendTime time.Time
 
 	receivedMsgCount int64
 	windowStartTime  time.Time
 	windowMutex      sync.Mutex
 
 	// High-Performance Storage Batching Queue
-	writeQueue       = make(chan DBJob, 1000)
+	writeQueue = make(chan DBJob, 1000)
 
 	// Prepared Statements
 	stmtGetMessagesCursor *sql.Stmt
@@ -496,6 +496,27 @@ func broadcastWS(msgType string, payload interface{}) {
 	}
 }
 
+// withCORS membungkus handler agar bisa diakses browser dari origin lain
+// (frontend :3000, Laravel :8001). Wajib untuk integrasi docker-compose.
+func withCORS(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next(w, r)
+	}
+}
+
+func handleHealth(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	json.NewEncoder(w).Encode(map[string]interface{}{"status": "ok", "service": "whatsapp-service"})
+}
+
 func handleWS(w http.ResponseWriter, r *http.Request) {
 	c, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 		InsecureSkipVerify: true,
@@ -650,13 +671,14 @@ func main() {
 		}
 	}
 
-	// HTTP Routes
-	http.HandleFunc("/send-wa", handleSendWA)
-	http.HandleFunc("/status", handleStatus)
-	http.HandleFunc("/qr", handleQR)
-	http.HandleFunc("/logout", handleLogout)
-	http.HandleFunc("/chats", handleChats)
-	http.HandleFunc("/messages", handleMessages)
+	// HTTP Routes (dibungkus CORS agar bisa dipanggil browser :3000 & Laravel :8001)
+	http.HandleFunc("/send-wa", withCORS(handleSendWA))
+	http.HandleFunc("/status", withCORS(handleStatus))
+	http.HandleFunc("/qr", withCORS(handleQR))
+	http.HandleFunc("/logout", withCORS(handleLogout))
+	http.HandleFunc("/chats", withCORS(handleChats))
+	http.HandleFunc("/messages", withCORS(handleMessages))
+	http.HandleFunc("/health", handleHealth)
 	http.HandleFunc("/ws", handleWS)
 
 	port := os.Getenv("PORT")

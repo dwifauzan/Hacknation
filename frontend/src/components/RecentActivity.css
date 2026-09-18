@@ -1,0 +1,146 @@
+/* RecentActivity Component Styles */
+
+.recent-activity-card {
+  padding: 20px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+
+.activity-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.activity-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.activity-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.activity-history-link {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent-hover);
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.activity-history-link:hover {
+  color: var(--text-primary);
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.activity-item {
+  height: 48px;
+  padding: 0 14px;
+  border-radius: 8px;
+  background-color: var(--card-inner-bg);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: border-color 0.15s ease;
+}
+
+.activity-item:hover {
+  border-color: #2b425c;
+}
+
+.activity-item-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* Explicit icon dimensions as strictly requested */
+.activity-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.activity-icon.shopee {
+  background-color: #17213a;
+  border: 1px solid #29365d;
+  color: var(--accent-hover);
+}
+
+.activity-icon.whatsapp {
+  background-color: rgba(6, 95, 70, 0.4);
+  border: 1px solid #065f46;
+  color: var(--status-success);
+}
+
+.activity-icon.instagram {
+  background-color: #17213a;
+  border: 1px solid #29365d;
+  color: var(--accent-hover);
+}
+
+.activity-icon.failed {
+  background-color: rgba(127, 29, 29, 0.4);
+  border: 1px solid #7f1d1d;
+  color: var(--status-danger);
+}
+
+.activity-icon.ai {
+  background-color: #17213a;
+  border: 1px solid #29365d;
+  color: var(--accent-hover);
+}
+
+.activity-details {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.activity-channel-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.activity-preview {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.activity-preview.failed-text {
+  color: var(--status-danger);
+}
+
+.activity-timestamp {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  margin-left: 12px;
+  flex-shrink: 0;
+}

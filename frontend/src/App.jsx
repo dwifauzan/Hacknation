@@ -28,10 +28,14 @@ export default function App() {
     try {
       const data = await waApi.getChats();
       setChats(data || []);
+      // Default select first chat JID if available and none selected
+      if (data && data.length > 0 && !activeJID) {
+        setActiveJID(data[0].jid);
+      }
     } catch (err) {
       console.error('Failed to load chats:', err);
     }
-  }, []);
+  }, [activeJID]);
 
   // Load WhatsApp Status
   const loadStatus = useCallback(async () => {
@@ -117,20 +121,57 @@ export default function App() {
               />
             )}
 
-            {/* Chat */}
+            {/* Checking DM Chat / WhatsApp Live Inbox */}
             {activeTab === 'chat' && (
-              <section className="tokopilot-chat-section">
-                <div className="tokopilot-chat-sidebar-col">
-                  <ChatList
-                    chats={chats}
-                    activeJID={activeJID}
-                    onSelectChat={setActiveJID}
-                  />
+              <div>
+                {/* Live Inbox Header & KPI Summary Bar */}
+                <div className="live-inbox-header-row">
+                  <div>
+                    <div className="live-inbox-title-line">
+                      <h1 className="live-inbox-title">WhatsApp Live Inbox</h1>
+                      <span className="live-inbox-api-badge">
+                        <span className="badge-dot"></span>
+                        CLOUD API CONNECTED
+                      </span>
+                    </div>
+                    <p className="live-inbox-subtitle">
+                      Kelola dialog pelanggan secara otonom atau lakukan intervensi manual tanpa jeda sesi.
+                    </p>
+                  </div>
+
+                  <div className="live-inbox-kpi-row">
+                    <div className="live-inbox-kpi-chip">
+                      <div className="live-inbox-kpi-icon ai">🤖</div>
+                      <div className="live-inbox-kpi-info">
+                        <span className="live-inbox-kpi-label">AI HANDLING</span>
+                        <span className="live-inbox-kpi-value">94.2%</span>
+                      </div>
+                    </div>
+
+                    <div className="live-inbox-kpi-chip">
+                      <div className="live-inbox-kpi-icon escalation">🚨</div>
+                      <div className="live-inbox-kpi-info">
+                        <span className="live-inbox-kpi-label">ESKALASI MANUAL</span>
+                        <span className="live-inbox-kpi-value">3 Chat</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="tokopilot-chat-window-col">
-                  <ChatWindow jid={activeJID} onMessageSent={loadChats} />
-                </div>
-              </section>
+
+                {/* Main Chat Layout Container */}
+                <section className="tokopilot-chat-section">
+                  <div className="tokopilot-chat-sidebar-col">
+                    <ChatList
+                      chats={chats}
+                      activeJID={activeJID}
+                      onSelectChat={setActiveJID}
+                    />
+                  </div>
+                  <div className="tokopilot-chat-window-col">
+                    <ChatWindow jid={activeJID} onMessageSent={loadChats} />
+                  </div>
+                </section>
+              </div>
             )}
 
             {/* Broadcast */}

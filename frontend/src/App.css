@@ -28,15 +28,122 @@
   padding: 28px 24px;
 }
 
+/* WhatsApp Live Inbox Page Header & KPI Cards */
+.live-inbox-header-row {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.live-inbox-title-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.live-inbox-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
+}
+
+.live-inbox-api-badge {
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background-color: rgba(6, 95, 70, 0.5);
+  border: 1px solid #065f46;
+  color: var(--status-success);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.live-inbox-api-badge .badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--status-success);
+}
+
+.live-inbox-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.live-inbox-kpi-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.live-inbox-kpi-chip {
+  padding: 10px 16px;
+  border-radius: 10px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.live-inbox-kpi-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.live-inbox-kpi-icon.ai {
+  background-color: rgba(6, 95, 70, 0.3);
+  border: 1px solid #065f46;
+  color: var(--status-success);
+}
+
+.live-inbox-kpi-icon.escalation {
+  background-color: rgba(127, 29, 29, 0.3);
+  border: 1px solid #7f1d1d;
+  color: #fca5a5;
+}
+
+.live-inbox-kpi-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.live-inbox-kpi-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.live-inbox-kpi-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
 /* Tab Views */
 .tokopilot-chat-section {
   min-height: 640px;
   display: grid;
-  grid-template-columns: 4fr 8fr;
+  grid-template-columns: 360px 1fr;
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
   background-color: var(--card-bg);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
 .tokopilot-chat-sidebar-col {
@@ -116,4 +223,10 @@
   height: 6px;
   border-radius: 50%;
   background-color: var(--status-success);
+}
+
+@media (max-width: 900px) {
+  .tokopilot-chat-section {
+    grid-template-columns: 1fr;
+  }
 }

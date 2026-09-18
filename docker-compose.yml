@@ -1,26 +1,16 @@
 services:
-  # 1. Microservice WhatsApp (Go)
+  # Microservice WhatsApp (Go)
   whatsapp-service:
     build:
       context: ./Whatsapp-service
     ports:
       - "8080:8080"
     volumes:
-      - ./Whatsapp-service/sessions:/app/sessions
-    restart: unless-stopped
-
-  # 2. Microservice Instagram (Python)
-  instagram-service:
-    build:
-      context: ./Instagram-service
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./Instagram-service/sessions:/app/sessions
+      - ./Whatsapp-service:/app
     restart: unless-stopped
 
   laravel-app:
-    image: php:8.2-cli
+    image: php:8.4-cli
     ports:
       - "8001:8000"
     volumes:
@@ -29,4 +19,3 @@ services:
     command: php artisan serve --host=0.0.0.0 --port=8000
     depends_on:
       - whatsapp-service
-      - instagram-service

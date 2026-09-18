@@ -91,6 +91,12 @@ def main() -> int:
             elif "BadPassword" in name or "BadCredentials" in name:
                 print("-> Wrong user/pass (or IG rejected password from this IP/device).\n"
                       "   Verify in app, then try once more later.", file=sys.stderr)
+            elif "code_entry context_data" in msg or "challenge" in name.lower():
+                print("-> Instagram requested an interactive verification checkpoint, but the "
+                      "current instagrapi CAA flow did not receive the required context.\n"
+                      "   Open Instagram in the official app on a trusted device, approve or "
+                      "complete any login/security check, then retry once using the same device "
+                      "and network. Do not loop password attempts.", file=sys.stderr)
             return 2
         me = client.account_info()
         print(f"OK: fresh login as @{me.username} (pk={me.pk})")

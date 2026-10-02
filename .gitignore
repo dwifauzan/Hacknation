@@ -1,21 +1,17 @@
-<<<<<<< HEAD
-/vendor
 /node_modules
-.env
-Whatsapp-service/sessions/
-Instagram-service/__pycache__/
-*.pyc
-=======
-# Instagram session / secrets — never commit (tokens = full account access)
-instagramApi/session.json
-**/session.json
+api/node_modules/
+frontend/node_modules/
+api/dist/
+frontend/dist/
+
 .env
 instagramApi/.env
-
-# Local Python venv — huge, machine-specific
+instagramApi/session.json
+**/session.json
 instagramApi/venv/
-
-# Python cache
+instagramApi/__pycache__/
 __pycache__/
 *.pyc
->>>>>>> dev
+
+Whatsapp-service/sessions/
+database/database.sqlite

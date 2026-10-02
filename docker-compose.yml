@@ -1,4 +1,31 @@
 services:
+  api:
+    build:
+      context: ./api
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_PATH: /data/database.sqlite
+      WHATSAPP_SERVICE_URL: http://whatsapp-service:8080
+      INSTAGRAM_SERVICE_URL: http://instagram-service:8090
+    volumes:
+      - ./database:/data
+    depends_on:
+      - whatsapp-service
+      - instagram-service
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:3000
+    ports:
+      - "3001:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
   # Microservice WhatsApp (Go)
   whatsapp-service:
     build:
@@ -8,18 +35,6 @@ services:
     volumes:
       - ./Whatsapp-service:/app
     restart: unless-stopped
-
-  laravel-app:
-    image: php:8.4-cli
-    ports:
-      - "8001:8000"
-    volumes:
-      - .:/var/www/html
-    working_dir: /var/www/html
-    command: php artisan serve --host=0.0.0.0 --port=8000
-    depends_on:
-      - whatsapp-service
-      - instagram-service
 
   instagram-service:
     build:

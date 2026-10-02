@@ -1,0 +1,342 @@
+:root {
+    color: #e2e8f0;
+    background: #020617;
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-width: 320px;
+}
+
+.app-shell {
+    min-height: 100vh;
+}
+
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    padding: 1.25rem 2rem;
+    border-bottom: 1px solid #1e293b;
+}
+
+nav {
+    display: flex;
+    gap: 1rem;
+}
+
+nav a {
+    color: #94a3b8;
+    text-decoration: none;
+}
+
+nav a:hover,
+nav a.active {
+    color: #34d399;
+}
+
+main {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 5rem 2rem;
+}
+
+.workspace {
+    max-width: 90rem;
+}
+
+.workspace-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.task-form {
+    display: flex;
+    gap: 0.5rem;
+}
+
+input,
+select,
+button {
+    border: 1px solid #334155;
+    border-radius: 0.5rem;
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 0.65rem 0.8rem;
+}
+
+button {
+    cursor: pointer;
+}
+
+button:hover {
+    border-color: #34d399;
+}
+
+.error-banner {
+    border: 1px solid #7f1d1d;
+    border-radius: 0.5rem;
+    color: #fca5a5;
+    padding: 0.75rem 1rem;
+}
+
+.muted {
+    color: #94a3b8;
+}
+
+.kanban-board {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.kanban-column {
+    min-height: 24rem;
+    border: 1px solid #1e293b;
+    border-radius: 0.75rem;
+    background: #0f172a;
+    padding: 1rem;
+}
+
+.kanban-column header,
+.task-card-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.kanban-column h2 {
+    margin: 0 0 1rem;
+    font-size: 1rem;
+}
+
+.kanban-column header span {
+    color: #64748b;
+}
+
+.task-card {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid #1e293b;
+    border-radius: 0.6rem;
+    background: #020617;
+    padding: 0.85rem;
+}
+
+.task-card-heading button {
+    border: 0;
+    padding: 0;
+}
+
+.priority {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+}
+
+.priority-low { color: #94a3b8; }
+.priority-medium { color: #60a5fa; }
+.priority-high { color: #fbbf24; }
+.priority-urgent { color: #f87171; }
+
+.success-banner {
+    border: 1px solid #065f46;
+    border-radius: 0.5rem;
+    color: #6ee7b7;
+    padding: 0.75rem 1rem;
+}
+
+.account-layout {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.account-card {
+    display: grid;
+    align-content: start;
+    gap: 1rem;
+    border: 1px solid #1e293b;
+    border-radius: 0.75rem;
+    background: #0f172a;
+    padding: 1.5rem;
+}
+
+.account-card h2 {
+    margin: 0;
+}
+
+.account-card label {
+    display: grid;
+    gap: 0.4rem;
+    color: #cbd5e1;
+    font-size: 0.9rem;
+}
+
+.account-name {
+    margin: 0;
+    color: #f8fafc;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.account-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.whatsapp-grid {
+    display: grid;
+    grid-template-columns: 20rem minmax(0, 1fr);
+    min-height: 34rem;
+    margin-top: 2rem;
+    border: 1px solid #1e293b;
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+.chat-list,
+.message-panel {
+    padding: 1rem;
+}
+
+.chat-list {
+    border-right: 1px solid #1e293b;
+    background: #0f172a;
+}
+
+.chat-list h2,
+.message-panel h2 {
+    margin-top: 0;
+    font-size: 1rem;
+}
+
+.chat-item {
+    display: grid;
+    width: 100%;
+    gap: 0.35rem;
+    margin-bottom: 0.5rem;
+    text-align: left;
+}
+
+.chat-item.selected {
+    border-color: #34d399;
+}
+
+.chat-item small {
+    overflow: hidden;
+    color: #94a3b8;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.message-panel {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 1rem;
+}
+
+.messages {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    overflow: auto;
+}
+
+.message-bubble {
+    display: grid;
+    align-self: start;
+    gap: 0.3rem;
+    max-width: 70%;
+    border-radius: 0.7rem;
+    background: #1e293b;
+    padding: 0.7rem 0.9rem;
+}
+
+.message-bubble.outgoing {
+    align-self: end;
+    background: #065f46;
+}
+
+.message-bubble small {
+    color: #94a3b8;
+    font-size: 0.7rem;
+}
+
+.message-form {
+    display: grid;
+    grid-template-columns: 10rem 1fr auto;
+    gap: 0.5rem;
+}
+
+.empty-state {
+    display: grid;
+    place-items: center;
+    color: #94a3b8;
+}
+
+.empty-state img {
+    max-width: 18rem;
+    background: white;
+    padding: 0.75rem;
+}
+
+@media (max-width: 900px) {
+    .workspace-heading {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .kanban-board {
+        grid-template-columns: 1fr;
+    }
+
+    .account-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .whatsapp-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .chat-list {
+        border-right: 0;
+        border-bottom: 1px solid #1e293b;
+    }
+
+    .message-form {
+        grid-template-columns: 1fr;
+    }
+}
+
+.eyebrow {
+    color: #34d399;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+h1 {
+    margin: 0.75rem 0;
+    font-size: clamp(2rem, 5vw, 4rem);
+}
+
+.description {
+    max-width: 42rem;
+    color: #94a3b8;
+    line-height: 1.7;
+}

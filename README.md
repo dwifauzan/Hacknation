@@ -1,311 +1,103 @@
-# HackNation - High-Performance WhatsApp Microservice Engine & DB Web Suite
+# HackNation
 
-System architecture documentation and developer reference for the **HackNation WhatsApp Microservice Engine**. This repository provides an asynchronous, anti-ban protected WhatsApp broadcast and chat management platform built with **Go (`whatsmeow`)**, **SQLite (WAL Mode)**, and **Laravel 11**.
+HackNation is a TypeScript web workspace for WhatsApp operations, Kanban task management, and Instagram account automation.
 
-## Maintainable Application Flow
-
-The application keeps the existing browser routes for compatibility, while new clients should use the versioned Laravel API:
+## Architecture
 
 ```text
-SPA dashboard / future clients
-        |
-        v
-Laravel /api/v1/whatsapp/*
-        |
-        v
-App\Services\WhatsApp\WhatsAppClient
-        |
-        v
-Go WhatsApp service (/status, /qr, /chats, /messages, /send-wa)
+React + Vite + TypeScript frontend
+                |
+                v
+Express + TypeScript API (:3000)
+        |              |              |
+        v              v              v
+    SQLite       Go WhatsApp      Python Instagram
+                 service :8080    service :8090
 ```
 
-The Laravel client and API controllers are intentionally separate from the Go transport. New WhatsApp features should be added to `WhatsAppClient` first, then exposed through a versioned controller endpoint and consumed by a frontend module. The legacy `/whatsapp/*` and `/kirim-pesan` routes delegate through the same client so existing integrations continue to work.
+### Frontend
 
-The browser dashboard behavior is bundled through Vite in `resources/js/dashboard.js`. The Blade file remains the server-rendered shell for now, while the JavaScript module owns state, API calls, WebSocket events, and UI actions. This gives the project an incremental path toward a full SPA without forcing a breaking frontend migration.
+- React 19
+- Vite
+- TypeScript
+- React Router
+- Native `fetch`
+- Browser WebSocket for WhatsApp realtime updates
 
-The Instagram automation subsystem has its own centralized runtime settings in `instagramApi/settings.py`; credentials and session files remain environment/local-file concerns and are not part of the Laravel runtime.
+The frontend lives in `frontend/` and is served by Vite during development or Nginx in Docker.
 
----
+### API
 
-## 🏗️ System Architecture
+- Node.js
+- Express
+- TypeScript
+- Native Node SQLite (`node:sqlite`)
+- Supertest and Node's test runner
 
-The application adopts a decoupled microservice architecture orchestrated via Docker Compose:
+The API lives in `api/` and provides:
 
-```
-+-------------------------------------------------------------------+
-|                        Web Browser Client                         |
-|   (WhatsApp Web-Style DB Chat UI & Anti-Ban Broadcast Dashboard)  |
-+---------------------------------+---------------------------------+
-                                  |
-                        HTTP / REST Requests
-                                  |
-                                  v
-+---------------------------------+---------------------------------+
-|                    Laravel 11 Core Application                    |
-|                (Container: laravel-app | Port: 8001)               |
-|      - Reverse proxy routing for status, QR, chats, and messages  |
-|      - Form validation & input sanitization                       |
-+---------------------------------+---------------------------------+
-                                  |
-                        Internal HTTP Protocol
-                    (http://whatsapp-service:8080)
-                                  |
-                                  v
-+---------------------------------+---------------------------------+
-|                 Go WhatsApp Engine Microservice                   |
-|            (Container: whatsapp-service | Port: 8080)             |
-|   - Engine core powered by `go.mau.fi/whatsmeow`                  |
-|   - Asynchronous WebSocket event handler & Anti-Ban pipeline      |
-|   - SQLite WAL Storage Engine (`whatsapp.db`)                     |
-+-------------------------------------------------------------------+
-```
+- `GET /health`
+- `/api/v1/kanban/tasks`
+- `/api/v1/instagram/account`
+- `/api/v1/whatsapp`
 
-### Component Breakdown:
-1. **Laravel 11 Core (`laravel-app`)**: Serves the single-page Blade web application (`welcome.blade.php`), proxies frontend AJAX calls to the internal Go microservice (`BroadcastController.php`), and handles input sanitization.
-2. **Go WhatsApp Microservice (`whatsapp-service`)**: Pure Go microservice built on `whatsmeow` that manages WhatsApp Web socket connections, pairing states, inbound message streaming, and outbound dispatch with anti-ban protections.
-3. **Embedded SQLite Engine (`whatsapp.db`)**: Embedded local database maintaining pairing credentials, session keys, contacts summary, and message history archives.
+The API uses `database/database.sqlite` by default. Set `DATABASE_PATH` to use another database file.
 
----
+### Existing microservices
 
-## 🛡️ Anti-Ban Mechanism Implementation
+- `Whatsapp-service/`: Go service using `whatsmeow`, WebSocket, QR generation, and SQLite session/message storage.
+- `instagramApi/`: Python service using FastAPI, Uvicorn, and `instagrapi`.
 
-WhatsApp applies automated heuristics to detect non-standard API clients and mass distribution patterns. The Go engine implements multi-layered countermeasures:
+## Local development
 
-### 1. Web Client Device Signature Emulation
-The engine overrides client store device properties upon startup to emulate a standard WhatsApp Web session on Google Chrome for Windows:
-```go
-store.DeviceProps.Os = proto.String("Windows")
-```
-
-### 2. Recipient JID Verification (`IsOnWhatsApp`)
-Before attempting outbound message dispatch, the engine queries the WhatsApp server to verify whether the target phone number exists:
-```go
-onWA, err := client.IsOnWhatsApp(ctx, []string{cleanPhone})
-```
-*Rationale*: Sending messages to unregistered JIDs is a primary trigger for automated account flagging. Requests targeting invalid numbers are rejected immediately with a `400 Bad Request`.
-
-### 3. Humanized Typing Presence Simulation (`SendChatPresence`)
-Prior to dispatching message payloads, the engine sends a chat presence update and introduces a randomized typing delay (1,500ms – 3,000ms):
-```go
-_ = client.SendChatPresence(ctx, targetJID, types.ChatPresenceComposing, types.ChatPresenceMediaText)
-time.Sleep(time.Duration(1500 + rand.Intn(1500)) * time.Millisecond)
-resp, err := client.SendMessage(ctx, targetJID, &waE2E.Message{ ... })
-_ = client.SendChatPresence(ctx, targetJID, types.ChatPresencePaused, types.ChatPresenceMediaText)
-```
-
-### 4. Outbound Rate Limiting & Inter-Message Jitter
-Outbound dispatches are guarded by a mutex-protected rate limiter that enforces a minimum cooldown of 3 seconds plus a randomized 0–2,000ms jitter between consecutive messages:
-```go
-sendMutex.Lock()
-elapsed := time.Since(lastSendTime)
-requiredWait := MinSendInterval + time.Duration(rand.Intn(2000))*time.Millisecond
-if elapsed < requiredWait {
-    time.Sleep(requiredWait - elapsed)
-}
-lastSendTime = time.Now()
-sendMutex.Unlock()
-```
-
-### 5. Inbound Message & History Sync Throttling
-- Inbound `*events.Message` logging is rate-limited to 50 events/minute via a sliding window counter to prevent memory pressure.
-- Inbound `*events.HistorySync` events are processed without automated media downloads (`DisableAutoDownload`), keeping CPU and disk I/O usage minimal.
-
----
-
-## 💾 SQLite Concurrency & Database Schema
-
-To eliminate `SQLITE_BUSY` (database is locked) errors during simultaneous history sync writes and message dispatches, the SQLite connection DSN is configured with **Write-Ahead Logging (WAL)** and a 10-second busy timeout:
-
-```go
-dsn := "file:sessions/whatsapp.db?_foreign_keys=on&_journal_mode=WAL&_busy_timeout=10000&_sync=NORMAL"
-```
-
-### Schema Definitions:
-
-#### 1. Contact Summary Table (`chats`) — $O(1)$ Lookup Table
-Stores upserted contact summaries to enable instant chat list rendering without full table scans:
-```sql
-CREATE TABLE IF NOT EXISTS chats (
-    jid TEXT PRIMARY KEY,
-    sender_name TEXT,
-    last_message TEXT,
-    from_me INTEGER DEFAULT 0,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-#### 2. Message History Table (`chat_messages`)
-Stores complete message history for inbound and outbound messages:
-```sql
-CREATE TABLE IF NOT EXISTS chat_messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    message_id TEXT,
-    jid TEXT,
-    sender_name TEXT,
-    from_me INTEGER DEFAULT 0,
-    message_text TEXT,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_messages_jid ON chat_messages(jid);
-CREATE INDEX IF NOT EXISTS idx_messages_jid_id ON chat_messages(jid, id DESC);
-```
-
----
-
-## 🔌 API Endpoints Specification
-
-All endpoints are proxied through Laravel Core (`http://localhost:8001`) and delegate internally to the Go microservice (`http://whatsapp-service:8080`).
-
-### 1. System & Authentication Endpoints
-
-#### `GET /whatsapp/status`
-Returns connection and authentication state of the Go WhatsApp engine.
-- **Response `200 OK`**:
-  ```json
-  {
-    "connected": true,
-    "logged_in": true,
-    "jid": "628123456789@s.whatsapp.net",
-    "anti_ban_active": true,
-    "min_delay_sec": 3,
-    "max_incoming_pm": 50
-  }
-  ```
-
-#### `GET /whatsapp/qr`
-Returns the active pairing QR code stream.
-- **Response**: `image/png` binary stream if unauthenticated; `application/json` if already authenticated.
-
-#### `POST /whatsapp/logout`
-Terminates the current WhatsApp Web session and resets pairing state.
-- **Response `200 OK`**:
-  ```json
-  {
-    "status": "success",
-    "message": "Session WhatsApp berhasil di-reset / logout."
-  }
-  ```
-
----
-
-### 2. Chat Data & Messaging Endpoints (DB-Driven)
-
-#### `GET /whatsapp/chats`
-Fetches a list of registered contacts and their latest message snippets strictly from the local `chats` database table.
-- **Response `200 OK`**:
-  ```json
-  {
-    "status": "success",
-    "data": [
-      {
-        "jid": "628123456789@s.whatsapp.net",
-        "phone": "628123456789",
-        "sender_name": "John Doe",
-        "last_message": "Hello, this is a test message",
-        "from_me": false,
-        "timestamp": "2026-09-18 14:15:00"
-      }
-    ]
-  }
-  ```
-
-#### `GET /whatsapp/messages?jid={jid}`
-Fetches up to 50 historical messages for a given contact JID from `chat_messages`.
-- **Response `200 OK`**:
-  ```json
-  {
-    "status": "success",
-    "jid": "628123456789@s.whatsapp.net",
-    "data": [
-      {
-        "id": 1,
-        "message_id": "3EB0AA1221A4BAD9DEB1EA",
-        "jid": "628123456789@s.whatsapp.net",
-        "sender_name": "John Doe",
-        "from_me": false,
-        "message_text": "Hello",
-        "timestamp": "2026-09-18 14:14:00"
-      },
-      {
-        "id": 2,
-        "message_id": "AC5800F6C52658DD73AFEE560FBF520C",
-        "jid": "628123456789@s.whatsapp.net",
-        "sender_name": "Me",
-        "from_me": true,
-        "message_text": "Hi John!",
-        "timestamp": "2026-09-18 14:15:00"
-      }
-    ]
-  }
-  ```
-
-#### `POST /kirim-pesan`
-Dispatches an outbound message to the target number via the anti-ban pipeline and archives the record to SQLite.
-- **Request Body (`application/x-www-form-urlencoded` or `application/json`)**:
-  ```json
-  {
-    "target": "08123456789",
-    "pesan": "Halo! Ini pesan broadcast otomatis."
-  }
-  ```
-- **Response `200 OK`**:
-  ```json
-  {
-    "status": "success",
-    "message": "Pesan WhatsApp berhasil dikirim (Proteksi Anti-Ban & Tersimpan ke DB)",
-    "data": {
-      "message_id": "AC5800F6C52658DD73AFEE560FBF520C",
-      "to": "628123456789",
-      "anti_ban": "typing_presence_and_rate_limited"
-    }
-  }
-  ```
-
----
-
-## 🛠️ Local Development & Deployment Guide
-
-### Prerequisites
-- [Docker](https://www.docker.com/) & [Docker Compose](https://docs.docker.com/compose/)
-- [Go 1.23+](https://go.dev/) (For local Go microservice development without Docker)
-- [PHP 8.2+](https://www.php.net/) & [Composer](https://getcomposer.org/) (For local Laravel development)
-
-### 1. Running via Docker Compose (Production / Full Containerized Setup)
-
-From the project root directory (`Hacknation`), execute:
+Install dependencies:
 
 ```bash
-docker compose up -d --build
+cd api && npm install
+cd ../frontend && npm install
 ```
 
-Container Port Mappings:
-- **Laravel Workspace Hub**: `http://localhost:8001`
-  - WhatsApp dashboard: `http://localhost:8001/`
-  - Kanban board: `http://localhost:8001/kanban`
-  - Instagram account: `http://localhost:8001/instagram/accounts`
-- **Go WhatsApp Service**: `http://localhost:8080`
-- **Instagram Service**: `http://localhost:8090`
+Start the API:
 
-The Laravel workspace hub includes navigation links to every feature, so you only need to remember the main URL: `http://localhost:8001`.
-
-To inspect container logs:
 ```bash
-docker logs -f hacknation-whatsapp-service-1
-docker logs -f hacknation-laravel-app-1
+cd api
+npm run dev
 ```
 
-### 2. Running Standalone Services (Local Development Without Docker)
+Start the frontend in another terminal:
 
-#### Terminal 1: Run Go WhatsApp Microservice
 ```bash
-cd Whatsapp-service
-go run main.go
+cd frontend
+npm run dev
 ```
-*Listens on `http://localhost:8080`*.
 
-#### Terminal 2: Run Laravel Core
+The frontend expects the API at `http://localhost:3000`. Override it with `VITE_API_URL`.
+
+## Validation
+
 ```bash
-php artisan serve --port=8000
+cd api
+npm test
+npm run build
+
+cd ../frontend
+npm run typecheck
+npm run build
 ```
-*Listens on `http://localhost:8000`*.
+
+## Docker Compose
+
+The compose file defines:
+
+- `frontend` on port `3001`
+- `api` on port `3000`
+- `whatsapp-service` on port `8080`
+- `instagram-service` on port `8090`
+
+Run the full stack with:
+
+```bash
+docker compose up --build
+```
+
+The Docker daemon must be running before executing this command.

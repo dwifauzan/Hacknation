@@ -1,0 +1,25 @@
+{
+  "resources/css/app.css": {
+    "file": "assets/app-CBwE6ItG.css",
+    "src": "resources/css/app.css",
+    "isEntry": true
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-CuibkMd0.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true
+  },
+  "resources/js/instagram-accounts.js": {
+    "file": "assets/instagram-accounts-BnxvCy_e.js",
+    "name": "instagram-accounts",
+    "src": "resources/js/instagram-accounts.js",
+    "isEntry": true
+  },
+  "resources/js/kanban.js": {
+    "file": "assets/kanban-C3vRcfo3.js",
+    "name": "kanban",
+    "src": "resources/js/kanban.js",
+    "isEntry": true
+  }
+}

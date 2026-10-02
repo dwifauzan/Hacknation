@@ -1,6 +1,12 @@
 <?php
 
 return [
+    'whatsapp' => [
+        'url' => env('WHATSAPP_SERVICE_URL', 'http://whatsapp-service:8080'),
+    ],
+    'instagram' => [
+        'url' => env('INSTAGRAM_SERVICE_URL', 'http://instagram-service:8090'),
+    ],
 
     /*
     |--------------------------------------------------------------------------

@@ -10,7 +10,9 @@ Strategy to DODGE 2FA/challenge triggers:
 """
 from pathlib import Path
 
-SESSION_FILE = Path(__file__).parent / "session.json"
+from settings import Settings
+
+SESSION_FILE = Settings.from_env().session_file
 
 
 def create_client(proxy=None, delay_range=None):

@@ -2,201 +2,98 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\SendWhatsAppMessageRequest;
+use App\Services\WhatsApp\WhatsAppClient;
+use App\Services\WhatsApp\WhatsAppServiceException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 
 class BroadcastController extends Controller
 {
-    private function getWaBaseUrl(): string
+    public function __construct(private readonly WhatsAppClient $whatsapp)
     {
-        return env('WHATSAPP_SERVICE_URL', 'http://whatsapp-service:8080');
     }
 
     public function status()
     {
-        try {
-            $response = Http::timeout(3)->get($this->getWaBaseUrl() . '/status');
-            if ($response->successful()) {
-                return response()->json($response->json());
-            }
-        } catch (\Exception $e) {
-            try {
-                $response = Http::timeout(3)->get('http://localhost:8080/status');
-                if ($response->successful()) {
-                    return response()->json($response->json());
-                }
-            } catch (\Exception $ex) {
-                // Fallback error
-            }
-        }
-
-        return response()->json([
-            'connected' => false,
-            'logged_in' => false,
-            'jid' => '',
-            'error' => 'Gagal terhubung ke WhatsApp microservice (Offline)'
-        ], 503);
+        return $this->json(fn () => $this->whatsapp->status());
     }
 
     public function qr()
     {
         try {
-            $response = Http::timeout(5)->get($this->getWaBaseUrl() . '/qr');
-            if ($response->successful()) {
-                $contentType = $response->header('Content-Type');
-                if (str_contains($contentType, 'image/png')) {
-                    return response($response->body(), 200)
-                        ->header('Content-Type', 'image/png')
-                        ->header('Cache-Control', 'no-cache, no-store, must-revalidate');
-                }
-                return response()->json($response->json());
-            }
-        } catch (\Exception $e) {
-            try {
-                $response = Http::timeout(5)->get('http://localhost:8080/qr');
-                if ($response->successful()) {
-                    $contentType = $response->header('Content-Type');
-                    if (str_contains($contentType, 'image/png')) {
-                        return response($response->body(), 200)
-                            ->header('Content-Type', 'image/png')
-                            ->header('Cache-Control', 'no-cache, no-store, must-revalidate');
-                    }
-                    return response()->json($response->json());
-                }
-            } catch (\Exception $ex) {
-                // Fallback error
-            }
-        }
+            $response = $this->whatsapp->qr();
 
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Gagal mengambil QR Code dari WhatsApp microservice'
-        ], 503);
+            if (str_contains((string) $response->header('Content-Type'), 'image/png')) {
+                return response($response->body(), 200)
+                    ->header('Content-Type', 'image/png')
+                    ->header('Cache-Control', 'no-cache, no-store, must-revalidate');
+            }
+
+            return response()->json($response->json());
+        } catch (WhatsAppServiceException $exception) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $exception->getMessage(),
+            ], $exception->status);
+        }
     }
 
     public function logout()
     {
-        try {
-            $response = Http::timeout(5)->post($this->getWaBaseUrl() . '/logout');
-            if ($response->successful()) {
-                return response()->json($response->json());
-            }
-        } catch (\Exception $e) {
-            try {
-                $response = Http::timeout(5)->post('http://localhost:8080/logout');
-                if ($response->successful()) {
-                    return response()->json($response->json());
-                }
-            } catch (\Exception $ex) {
-                // Ignore
-            }
-        }
-
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Gagal melakukan logout dari WhatsApp microservice'
-        ], 500);
+        return $this->json(fn () => $this->whatsapp->logout());
     }
 
     public function chats()
     {
-        try {
-            $response = Http::timeout(5)->get($this->getWaBaseUrl() . '/chats');
-            if ($response->successful()) {
-                return response()->json($response->json());
-            }
-        } catch (\Exception $e) {
-            try {
-                $response = Http::timeout(5)->get('http://localhost:8080/chats');
-                if ($response->successful()) {
-                    return response()->json($response->json());
-                }
-            } catch (\Exception $ex) {
-                // Ignore
-            }
-        }
-
-        return response()->json(['status' => 'success', 'data' => []]);
+        return $this->json(fn () => $this->whatsapp->chats());
     }
 
     public function messages(Request $request)
     {
-        $jid = $request->input('jid', '');
-        try {
-            $response = Http::timeout(5)->get($this->getWaBaseUrl() . '/messages', ['jid' => $jid]);
-            if ($response->successful()) {
-                return response()->json($response->json());
-            }
-        } catch (\Exception $e) {
-            try {
-                $response = Http::timeout(5)->get('http://localhost:8080/messages', ['jid' => $jid]);
-                if ($response->successful()) {
-                    return response()->json($response->json());
-                }
-            } catch (\Exception $ex) {
-                // Ignore
-            }
-        }
+        $validated = $request->validate([
+            'jid' => ['required', 'string', 'max:255'],
+            'before_id' => ['nullable', 'integer', 'min:1'],
+        ]);
 
-        return response()->json(['status' => 'success', 'jid' => $jid, 'data' => []]);
+        return $this->json(fn () => $this->whatsapp->messages(
+            $validated['jid'],
+            $validated['before_id'] ?? null,
+        ));
     }
 
-    public function kirimPesan(Request $request)
+    public function kirimPesan(SendWhatsAppMessageRequest $request)
     {
-        $target = $request->input('target');     // Nomor HP WhatsApp
-        $pesan = $request->input('pesan');       // Isi pesan
-
-        if (empty($target) || empty($pesan)) {
-            $msg = 'Nomor HP WhatsApp dan isi pesan wajib diisi.';
-            if ($request->expectsJson() || $request->isJson()) {
-                return response()->json(['status' => 'error', 'message' => $msg], 400);
-            }
-            return redirect()->back()->with('error', $msg);
-        }
-
-        $response = null;
-        $baseUrl = $this->getWaBaseUrl();
+        $validated = $request->validated();
 
         try {
-            $response = Http::timeout(15)->post($baseUrl . '/send-wa', [
-                'phone' => $target,
-                'message' => $pesan
-            ]);
-        } catch (\Exception $e) {
-            try {
-                $response = Http::timeout(15)->post('http://localhost:8080/send-wa', [
-                    'phone' => $target,
-                    'message' => $pesan
-                ]);
-            } catch (\Exception $ex) {
-                // Fail over
-            }
-        }
-
-        if ($response && $response->successful()) {
-            $responseData = $response->json();
+            $result = $this->whatsapp->send($validated['target'], $validated['pesan']);
+        } catch (WhatsAppServiceException $exception) {
             if ($request->expectsJson() || $request->isJson()) {
                 return response()->json([
-                    'status' => 'success',
-                    'message' => $responseData['message'] ?? 'Pesan WhatsApp berhasil dikirim!',
-                    'data' => $responseData['data'] ?? $responseData
-                ]);
+                    'status' => 'error',
+                    'message' => $exception->getMessage(),
+                ], $exception->status);
             }
-            return redirect()->back()->with('success', 'Pesan WhatsApp berhasil dikirim!');
-        }
 
-        $errorMessage = 'Gagal menghubungi WhatsApp service.';
-        if ($response) {
-            $resJson = $response->json();
-            $errorMessage = $resJson['message'] ?? $resJson['detail'] ?? $response->body();
+            return redirect()->back()->with('error', $exception->getMessage());
         }
 
         if ($request->expectsJson() || $request->isJson()) {
+            return response()->json($result);
+        }
+
+        return redirect()->back()->with('success', $result['message'] ?? 'Pesan WhatsApp berhasil dikirim!');
+    }
+
+    private function json(callable $callback)
+    {
+        try {
+            return response()->json($callback());
+        } catch (WhatsAppServiceException $exception) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Gagal mengirim pesan WhatsApp: ' . $errorMessage
-            ], $response ? $response->status() : 400);
+                'message' => $exception->getMessage(),
+            ], $exception->status);
         }
-        return redirect()->back()->with('error', 'Gagal mengirim pesan WhatsApp: ' . $errorMessage);
     }
 }

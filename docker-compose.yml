@@ -19,3 +19,13 @@ services:
     command: php artisan serve --host=0.0.0.0 --port=8000
     depends_on:
       - whatsapp-service
+      - instagram-service
+
+  instagram-service:
+    build:
+      context: ./instagramApi
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./instagramApi:/app
+    restart: unless-stopped

@@ -2,6 +2,29 @@
 
 System architecture documentation and developer reference for the **HackNation WhatsApp Microservice Engine**. This repository provides an asynchronous, anti-ban protected WhatsApp broadcast and chat management platform built with **Go (`whatsmeow`)**, **SQLite (WAL Mode)**, and **Laravel 11**.
 
+## Maintainable Application Flow
+
+The application keeps the existing browser routes for compatibility, while new clients should use the versioned Laravel API:
+
+```text
+SPA dashboard / future clients
+        |
+        v
+Laravel /api/v1/whatsapp/*
+        |
+        v
+App\Services\WhatsApp\WhatsAppClient
+        |
+        v
+Go WhatsApp service (/status, /qr, /chats, /messages, /send-wa)
+```
+
+The Laravel client and API controllers are intentionally separate from the Go transport. New WhatsApp features should be added to `WhatsAppClient` first, then exposed through a versioned controller endpoint and consumed by a frontend module. The legacy `/whatsapp/*` and `/kirim-pesan` routes delegate through the same client so existing integrations continue to work.
+
+The browser dashboard behavior is bundled through Vite in `resources/js/dashboard.js`. The Blade file remains the server-rendered shell for now, while the JavaScript module owns state, API calls, WebSocket events, and UI actions. This gives the project an incremental path toward a full SPA without forcing a breaking frontend migration.
+
+The Instagram automation subsystem has its own centralized runtime settings in `instagramApi/settings.py`; credentials and session files remain environment/local-file concerns and are not part of the Laravel runtime.
+
 ---
 
 ## 🏗️ System Architecture
@@ -257,8 +280,14 @@ docker compose up -d --build
 ```
 
 Container Port Mappings:
-- **Laravel Web Application & Dashboard**: `http://localhost:8001`
+- **Laravel Workspace Hub**: `http://localhost:8001`
+  - WhatsApp dashboard: `http://localhost:8001/`
+  - Kanban board: `http://localhost:8001/kanban`
+  - Instagram account: `http://localhost:8001/instagram/accounts`
 - **Go WhatsApp Service**: `http://localhost:8080`
+- **Instagram Service**: `http://localhost:8090`
+
+The Laravel workspace hub includes navigation links to every feature, so you only need to remember the main URL: `http://localhost:8001`.
 
 To inspect container logs:
 ```bash

@@ -15,6 +15,7 @@ import sys
 from dotenv import load_dotenv
 
 from ig_client import SESSION_FILE, create_client, password_login_and_save, secure_session_perms, try_session_login
+from settings import Settings
 
 _env_dir = os.path.dirname(__file__)
 _env_file = os.path.join(_env_dir, ".env")
@@ -31,10 +32,11 @@ def _prompt_creds():
 
 
 def main() -> int:
+    settings = Settings.from_env()
     parser = argparse.ArgumentParser(description="Bot-safe Instagram login + DMs")
     parser.add_argument("--check", action="store_true",
                         help="Only validate existing session.json, never prompt/login")
-    parser.add_argument("--proxy", default=os.environ.get("IG_PROXY"),
+    parser.add_argument("--proxy", default=settings.proxy,
                         help="Stable proxy URL (optional, keep same across runs)")
     parser.add_argument("--inbox", type=int, default=0, metavar="N",
                         help="List N most recent DM threads after login")
@@ -45,9 +47,9 @@ def main() -> int:
     parser.add_argument("--text", default="", help="Reply text for --send")
     parser.add_argument("--auto-once", action="store_true",
                         help="Process visible new DMs once with the AI and reply")
-    parser.add_argument("--db", default=os.path.join(os.path.dirname(__file__), "dm_store.sqlite3"),
+    parser.add_argument("--db", default=str(settings.database_file),
                         help="SQLite path for duplicate claims and reply logs")
-    parser.add_argument("--my-user-id", default=os.environ.get("IG_MY_USER_ID", ""),
+    parser.add_argument("--my-user-id", default=settings.my_user_id,
                         help="Optional override; otherwise read from the authenticated session")
     parser.add_argument("--amount", type=int, default=20,
                         help="Messages to fetch for --read (default 20)")

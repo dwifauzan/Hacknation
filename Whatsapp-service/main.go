@@ -510,6 +510,16 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 	wsClients[c] = true
 	wsMutex.Unlock()
 
+	// Replay the latest QR to clients that connect after QR generation.
+	qrMutex.RLock()
+	qrCode := currentQR
+	qrMutex.RUnlock()
+	if qrCode != "" {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		_ = c.Write(ctx, websocket.MessageText, mustMarshalWS("qr_update", map[string]interface{}{"qr": qrCode}))
+		cancel()
+	}
+
 	defer func() {
 		wsMutex.Lock()
 		delete(wsClients, c)
@@ -523,6 +533,18 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
+
+}
+
+func mustMarshalWS(msgType string, payload interface{}) []byte {
+	data, err := json.Marshal(map[string]interface{}{
+		"type": msgType,
+		"data": payload,
+	})
+	if err != nil {
+		return []byte(`{"type":"error","data":{"message":"failed to encode websocket event"}}`)
+	}
+	return data
 }
 
 func extractMessageText(v *events.Message) string {

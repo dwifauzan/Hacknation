@@ -32,6 +32,7 @@ export function WhatsAppPage() {
     const [qrUrl, setQrUrl] = useState('');
     const [error, setError] = useState('');
     const socketRef = useRef<WebSocket | null>(null);
+    const activeJidRef = useRef('');
 
     async function loadStatus() {
         const result = await apiRequest<WhatsAppStatus>('/api/v1/whatsapp/status');
@@ -53,6 +54,7 @@ export function WhatsAppPage() {
         if (!response.ok) throw new Error('Unable to load the WhatsApp QR code.');
         const contentType = response.headers.get('content-type') ?? '';
         if (contentType.includes('image/')) {
+            if (qrUrl) URL.revokeObjectURL(qrUrl);
             setQrUrl(URL.createObjectURL(await response.blob()));
         }
     }
@@ -67,18 +69,26 @@ export function WhatsAppPage() {
         socketRef.current = socket;
         socket.onmessage = () => {
             void loadChats();
-            if (activeJid) void loadMessages(activeJid);
+            if (activeJidRef.current) void loadMessages(activeJidRef.current);
         };
         socket.onerror = () => setError('WhatsApp realtime connection is unavailable.');
 
         return () => {
             socket.close();
-            if (qrUrl) URL.revokeObjectURL(qrUrl);
         };
+    }, []);
+
+    useEffect(() => {
+        activeJidRef.current = activeJid;
     }, [activeJid]);
+
+    useEffect(() => () => {
+        if (qrUrl) URL.revokeObjectURL(qrUrl);
+    }, [qrUrl]);
 
     async function selectChat(jid: string) {
         setActiveJid(jid);
+        setTarget(jid.split('@')[0]);
         try {
             await loadMessages(jid);
         } catch (requestError) {

@@ -61,11 +61,6 @@ main {
     margin-bottom: 2rem;
 }
 
-.task-form {
-    display: flex;
-    gap: 0.5rem;
-}
-
 input,
 select,
 button {
@@ -94,62 +89,6 @@ button:hover {
 .muted {
     color: #94a3b8;
 }
-
-.kanban-board {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 1rem;
-}
-
-.kanban-column {
-    min-height: 24rem;
-    border: 1px solid #1e293b;
-    border-radius: 0.75rem;
-    background: #0f172a;
-    padding: 1rem;
-}
-
-.kanban-column header,
-.task-card-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-}
-
-.kanban-column h2 {
-    margin: 0 0 1rem;
-    font-size: 1rem;
-}
-
-.kanban-column header span {
-    color: #64748b;
-}
-
-.task-card {
-    display: grid;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
-    border: 1px solid #1e293b;
-    border-radius: 0.6rem;
-    background: #020617;
-    padding: 0.85rem;
-}
-
-.task-card-heading button {
-    border: 0;
-    padding: 0;
-}
-
-.priority {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-}
-
-.priority-low { color: #94a3b8; }
-.priority-medium { color: #60a5fa; }
-.priority-high { color: #fbbf24; }
-.priority-urgent { color: #f87171; }
 
 .success-banner {
     border: 1px solid #065f46;
@@ -298,10 +237,6 @@ button:hover {
     .workspace-heading {
         align-items: stretch;
         flex-direction: column;
-    }
-
-    .kanban-board {
-        grid-template-columns: 1fr;
     }
 
     .account-layout {

@@ -1,11 +1,9 @@
 import { NavLink, Route, Routes } from 'react-router-dom';
-import { KanbanPage } from './features/kanban/KanbanPage';
 import { InstagramAccountsPage } from './features/instagram/InstagramAccountsPage';
 import { WhatsAppPage } from './features/whatsapp/WhatsAppPage';
 
 const navigation = [
     { to: '/', label: 'WhatsApp' },
-    { to: '/kanban', label: 'Kanban' },
     { to: '/instagram/accounts', label: 'Instagram' },
 ];
 
@@ -41,10 +39,6 @@ export function App() {
                 <Route
                     path="/"
                     element={<WhatsAppPage />}
-                />
-                <Route
-                    path="/kanban"
-                    element={<KanbanPage />}
                 />
                 <Route
                     path="/instagram/accounts"

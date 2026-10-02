@@ -16,14 +16,6 @@ describe('HackNation API foundation', () => {
         });
     });
 
-    it('returns Kanban metadata', async () => {
-        const response = await request(app).get('/api/v1/kanban/tasks');
-
-        assert.equal(response.status, 200);
-        assert.equal(response.body.meta.statuses.backlog, 'Backlog');
-        assert.equal(response.body.meta.priorities.urgent, 'Urgent');
-    });
-
     it('rejects invalid WhatsApp messages before contacting the service', async () => {
         const response = await request(app)
             .post('/api/v1/whatsapp/messages')

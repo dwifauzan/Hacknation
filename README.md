@@ -1,6 +1,6 @@
 # HackNation
 
-HackNation is a TypeScript web workspace for WhatsApp operations, Kanban task management, and Instagram account automation.
+HackNation is a TypeScript web workspace for WhatsApp operations and Instagram account automation.
 
 ## Architecture
 
@@ -37,7 +37,6 @@ The frontend lives in `frontend/` and is served by Vite during development or Ng
 The API lives in `api/` and provides:
 
 - `GET /health`
-- `/api/v1/kanban/tasks`
 - `/api/v1/instagram/account`
 - `/api/v1/whatsapp`
 
